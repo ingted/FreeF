@@ -65,13 +65,8 @@ type Node3<'R, 'A, 'B, 'C, 'D>(a1: _2<'R, 'A, 'B>, a2: _2<'R, 'B, 'C>, a3: _2<'R
   inherit Node<'R, 'A, 'D>()
   override this.ToDigit() = Three(a1, a2, a3) :> Digit<_, _, _>
 
-type TFingerTree = TFingerTree
-  with
-    interface Deque
-
 [<AbstractClass>]
 type TFingerTree<'R, 'A, 'B>() =
-  interface _3<TFingerTree, 'R, 'A, 'B>
   interface Deque<'R, 'A, 'B>
 
 [<Sealed>]
@@ -158,21 +153,6 @@ module ZList =
 
   let inline append (z1: ZList<_, _, _>) (z2: ZList<_, _, _>) = z1.Append(z2)
 
-let (|Empty|_|) (f: TFingerTree<'R, 'A, 'A>) =
-  match f with
-  | :? Empty<'R, 'A> -> Some ()
-  | _ -> None
-
-let (|Single|_|) (f: TFingerTree<'R, 'A, 'B>) =
-  match f with
-  | :? Single<'R, 'A, 'B> as s -> Some s
-  | _ -> None
-
-let (|Deep|_|) (f: TFingerTree<'R, 'A, 'D>) =
-  match f with
-  | :? Deep<'R, 'A, 'B, 'C, 'D> as d -> Some d
-  | _ -> None
-
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module TFingerTree =
 
@@ -195,56 +175,57 @@ module TFingerTree =
       | _ -> failwith "impossible case"
 
   // FIXME : type parameters
-  let rec prepend<'R, 'A, 'B, 'u3, 'u4> (a: _2<'R, 'A, 'B>) (tree: TFingerTree<'R, _, _>) =
-    match tree with
-    | Empty -> single a
-    | Single t -> deep (One(a)) (empty ()) (One(t.A))
-    | Deep t ->
+  let rec prepend<'R, 'A, 'B, 'C, 'u1, 'u2> (a: _2<'R, 'A, 'B>) (tree: TFingerTree<'R, 'B, 'C>) : TFingerTree<'R, 'A, 'C> =
+    match box tree with
+    | :? Empty<'R, 'A> -> single (downcast box a)
+    | :? Single<'R, 'A, 'B> as t -> deep (One(a)) (empty ()) (One(downcast box t.A))
+    | :? Deep<'R, 'B, 'B, 'C, 'C> as t ->
       match t.Prefix with
-      | :? Four<'R, 'B, 'A, 'u3, 'u4, 'B> as f ->
+      | :? Four<'R, 'B, 'A, 'u1, 'u2, 'B> as f ->
         let prefix = Two(a, f.A1)
         let middle = prepend (Node3(f.A2, f.A3, f.A4)) t.Middle
-        deep prefix middle t.Suffix
-      | _ -> deep (Digit.append (One(a)) t.Prefix) t.Middle t.Suffix
+        deep prefix middle (downcast box t.Suffix)
+      | _ -> deep (Digit.append (One(a)) t.Prefix) t.Middle (downcast box t.Suffix)
     | _ -> failwith "impossible case"
 
   // FIXME : type parameters
-  let rec append<'R, 'A , 'B, 'u2, 'u3> (tree: TFingerTree<'R, 'A, 'A>) (a: _2<'R, 'A, 'B>) =
-    match tree with
-    | Empty -> single a
-    | Single t -> deep (One(t.A)) (empty ()) (One(a))
-    | Deep t ->
+  let rec append<'R, 'A , 'B, 'C, 'u1, 'u2> (tree: TFingerTree<'R, 'A, 'B>) (a: _2<'R, 'B, 'C>) : TFingerTree<'R, 'A, 'C> =
+    match box tree with
+    | :? Empty<'R, 'B> -> single (downcast box a)
+    | :? Single<'R, 'A, 'B> as t -> deep (One(downcast box t.A)) (empty ()) (One(a))
+    | :? Deep<'R, 'A, 'A, 'B, 'B> as t ->
       match t.Suffix with
-      | :? Four<'R, 'A, 'u2, 'u3, 'B, 'A> as f ->
+      | :? Four<'R, 'B, 'u1, 'u2, 'C, 'B> as f ->
         let middle = t.Middle
-        deep t.Prefix (append middle (Node3(f.A1, f.A2, f.A3))) (Two(f.A4, a))
-      | _ -> deep t.Prefix t.Middle (Digit.append t.Suffix (One(a)))
+        deep (downcast box t.Prefix) (append middle (Node3(f.A1, f.A2, f.A3))) (Two(f.A4, a))
+      | _ -> deep (downcast box t.Prefix) t.Middle (Digit.append t.Suffix (One(a)))
     | _ -> failwith "impossible case"
 
   // FIXME : type parameters
-  let appendDeep<'R, 'A, 'B, 'D, 'E, 'u2, 'u3, 'u4> (tree: Deep<'R, 'A, 'B, 'B, 'D>) (a: _2<'R, 'D, 'E>) =
+  let appendDeep<'R, 'A, 'B, 'C, 'D, 'E, 'u1, 'u2, 'u3> (tree: Deep<'R, 'A, 'B, 'C, 'D>) (a: _2<'R, 'D, 'E>) =
     match tree.Suffix with
-    | :? Four<'R, 'B, 'u2, 'u3, 'u4, 'D> as f ->
-      let middle = tree.Middle
-      deep tree.Prefix (append  middle (Node3(f.A1, f.A2, f.A3))) (Two(f.A4, a))
+    | :? Four<'R, 'C, 'u1, 'u2, 'u3, 'D> as f ->
+      let middle = downcast box tree.Middle
+      let node = downcast box (Node3(f.A1, f.A2, f.A3))
+      deep tree.Prefix (append  middle node) (Two(f.A4, a))
     | _ -> deep tree.Prefix tree.Middle (Digit.append tree.Suffix (One(a)))
 
   // FIXME : type parameters
-  let rec addAllL<'R, 'A> (l: ZList<'R, 'A, 'A>) (tree: TFingerTree<'R, 'A, 'A>) =
+  let rec addAllL (l: ZList<'R, 'A, 'B>) (tree: TFingerTree<'R, 'B, 'C>) : TFingerTree<'R, 'A, 'C> =
     match l with
-    | _ when l.IsEmpty -> tree
-    | ZCons(h, t) -> prepend h (addAllL t tree)
+    | _ when l.IsEmpty -> downcast box tree
+    | ZCons(h, t) -> prepend (downcast box h) (downcast box (addAllL t tree))
     | _ -> failwith "impossible case"
 
   // FIXME : type parameters
-  let rec addAllR<'R, 'A, 'C> (tree: TFingerTree<'R, 'A, 'A>) (l: ZList<'R, 'A, 'C>) =
+  let rec addAllR (tree: TFingerTree<'R, 'A, 'B>) (l: ZList<'R, 'B, 'C>) : TFingerTree<'R, 'A, 'C> =
     match l with
-    | _ when l.IsEmpty -> tree
-    | ZCons(h, t) -> addAllR (append tree h) t
+    | _ when l.IsEmpty -> downcast box tree
+    | ZCons(h, t) -> addAllR (append (downcast box tree) (downcast box h)) t
     | _ -> failwith "impossible case"
 
   // FIXME : type parameters
-  let rec nodes (l: ZList<'R, 'A, 'A>) =
+  let rec nodes (l: ZList<'R, 'A, 'B>) =
     match l with
     | ZCons(h1, t1) ->
       match t1 with
@@ -257,76 +238,76 @@ module TFingerTree =
           | ZCons(h4, t4) ->
             match t4 with
             | ZNil -> ZCons(Node2(h1, h2), ZCons(Node2(h3, h4), ZNil()))  :> ZList<_, _, _>
-            | _ -> ZCons(Node3(h1, h2, h3), nodes t3) :> ZList<_, _, _>
+            | _ -> ZCons(Node3(h1, h2, h3), (downcast box (nodes (downcast box t3)))) :> ZList<_, _, _>
           | _ -> failwith "impossible case"
         | _ -> failwith "Unmanaged Case"
       | _ -> failwith "Unmanaged Case"
     | _ -> failwith "impossible case"
 
   // FIXME : type parameters
-  let rec app3<'R, 'A> (t1: TFingerTree<'R, 'A, 'A>) (l: ZList<'R, 'A, 'A>) (t2: TFingerTree<'R, 'A, 'A>) =
-    match t1 with
-    | Empty -> addAllL l t2
-    | Single t11 -> prepend t11.A (addAllL l t2)
-    | Deep t11 ->
-      match t2 with
-      | Empty -> addAllR t1 l
-      | Single t22 -> append (addAllR t1 l) t22.A
-      | Deep t22 ->
+  let rec app3 (t1: TFingerTree<'R, 'A, 'B>) (l: ZList<'R, 'B, 'C>) (t2: TFingerTree<'R, 'C, 'D>) : TFingerTree<'R, 'A, 'D> =
+    match box t1 with
+    | :? Empty<'R, 'A> -> addAllL (downcast box l) t2
+    | :? Single<'R, 'A, 'B> as t11 -> prepend (downcast box t11.A) (addAllL (downcast box l) t2)
+    | :? Deep<'R, 'A, 'A, 'B, 'B> as t11 ->
+      match box t2 with
+      | :? Empty<'R, 'C> -> addAllR (downcast box t1) (downcast box l)
+      | :? Single<'R, 'C, 'D> as t22 -> append (addAllR t1 (downcast box l)) (downcast box t22.A)
+      | :? Deep<'R, 'C, 'C, 'D, 'D> as t22 ->
         let middle =
           app3 t11.Middle
             (nodes (ZList.append (Digit.toList t11.Suffix) (ZList.append l (Digit.toList t22.Prefix))))
             t22.Middle
-        deep t11.Prefix middle t22.Suffix
+        deep (downcast box t11.Prefix) middle t22.Suffix
       | _ -> failwith "impossible case"
     | _ -> failwith "impossible case"
 
   // FIXME : type parameters
-  let app2<'R, 'A> (t1: TFingerTree<'R, 'A, 'A>) (t2: TFingerTree<'R, 'A, 'A>) =
-    match t1 with
-    | Empty -> t2
-    | Single t11 -> prepend t11.A t2
-    | Deep t11 ->
-      match t2 with
-      | Empty -> t1
-      | Single t22 -> appendDeep t11 t22.A
-      | Deep t22 ->
+  let app2 (t1: TFingerTree<'R, 'A, 'B>) (t2: TFingerTree<'R, 'B, 'C>) : TFingerTree<'R, 'A, 'C> =
+    match box t1 with
+    | :? Empty<'R, 'A> -> downcast box t2
+    | :? Single<'R, 'A, 'B> as t11 -> prepend (downcast box t11.A) (downcast box t2)
+    | :? Deep<'R, 'A, 'A, 'B, 'B> as t11 ->
+      match box t2 with
+      | :? Empty<'R, 'B> -> downcast box t1
+      | :? Single<'R, 'B, 'C> as t22 -> appendDeep (downcast box t11) t22.A
+      | :? Deep<'R, 'B, 'B, 'C, 'C> as t22 ->
         let middle =
           app3 t11.Middle (nodes (ZList.append (Digit.toList t11.Suffix) (Digit.toList t22.Prefix))) t22.Middle
-        deep t11.Prefix middle t22.Suffix
+        deep (downcast box t11.Prefix) middle t22.Suffix
       | _ -> failwith "impossible case"
     | _ -> failwith "impossible case"
 
   // FIXME : type parameters
-  let deepL<'R, 'A, 'D, 'u> (pr: ZList<'R, 'A, 'A>) (m: TFingerTree<'R, 'A, 'A>) (sf: Digit<'R, 'A, 'D>) (ts: TSequence<TFingerTree>) =
-    match pr with
-    | ZNil ->
+  let deepL<'R, 'A, 'B, 'C, 'D, 'u> (pr: ZList<'R, 'A, 'B>) (m: TFingerTree<'R, 'B, 'C>) (sf: Digit<'R, 'C, 'D>) (ts: TSequence<Deque>) : TFingerTree<'R, 'A, 'D> =
+    match box pr with
+    | :? ZNil<'R, 'A> ->
       match ts.Tviewl(m) with
-      | :? TViewl.EmptyL<TFingerTree, 'A, 'A> -> sf.ToTree()
-      | :? TViewl.LeafL<TFingerTree, 'R, 'A, 'u, 'A> as l ->
-        let prefix = (l.Head :?> Node<'R, 'A, 'u>).ToDigit()
+      | :? TViewl.EmptyL<Deque, 'B, 'B> -> downcast box (sf.ToTree())
+      | :? TViewl.LeafL<Deque, 'R, 'B, 'u, 'C> as l ->
+        let prefix = downcast box ((l.Head :?> Node<'R, 'B, 'u>).ToDigit())
         deep prefix (l.Tail() :?> TFingerTree<_, _, _>) sf
       | _ -> failwith "impossible case"
     | _ -> deep (Digit.fromList pr) m sf
 
   // FIXME: compile error
-  let tseq = { new TSequence<TFingerTree> with
-    member this.Tempty() = empty () :> _3<TFingerTree, _, _, _>
+  let tseq = { new TSequence<Deque> with
+    member this.Tempty() = empty () :> _3<Deque, _, _, _>
 
-    member this.Tsingleton(c) = single c :> _3<TFingerTree, _, _, _>
+    member this.Tsingleton(c) = single c :> _3<Deque, _, _, _>
 
     member this.Tappend(a, b) =
       app2 (a :?> TFingerTree<_, _, _>) (b :?> TFingerTree<_, _, _>)
-      :> _3<TFingerTree, _, _, _>
+      :> _3<Deque, _, _, _>
 
-    member this.Tviewl(s) =
-      match s :?> TFingerTree<_, _, _> with
-      | Empty -> TViewl.emptyL ()
-      | Single t -> TViewl.leafL t.A (fun () -> empty () :> _3<TFingerTree, _, _, _>)
-      | Deep t ->
+    member this.Tviewl(s: _3<Deque, 'C, 'X, 'Y>) =
+      match box s with
+      | :? Empty<'C, 'X> -> downcast box (TViewl.emptyL ())
+      | :? Single<'C, 'X, 'Y> as t -> TViewl.leafL t.A (fun () -> downcast box (empty ()))
+      | :? Deep<'C, 'X, 'X, 'Y, 'Y> as t ->
         match Digit.toList t.Prefix with
         | ZCons(hh, tt) ->
-          TViewl.leafL hh (fun () -> deepL tt t.Middle t.Suffix this :> _3<TFingerTree, _, _, _>)
+          TViewl.leafL hh (fun () -> deepL tt t.Middle t.Suffix this :> _3<Deque, _, _, _>)
         | _ -> failwith "impossible case"
       | _ -> failwith "impossible case"
   }
