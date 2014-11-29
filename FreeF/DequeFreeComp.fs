@@ -46,7 +46,7 @@ type DequeFreeComp(ts: TSequence<Deque>) =
         Impure (F.Map(inner, a))
     }
 
-  member this.bind<'S, 'A, 'B> (fa: FreeF.Free<'S, 'A>) (f: 'A -> FreeF.Free<'S, 'B>) =
+  member this.bind<'S, 'A, 'B> (f: 'A -> FreeF.Free<'S, 'B>) (fa: FreeF.Free<'S, 'A>) =
     let free = fa :?> FM<'S, 'A, 'A>
     let deq = ts.Tappend<'S, _, 'A, 'B>(free.Tail, ts.Tsingleton<'S, 'A, 'B>({ F = f } :> _2<_, _, _>)) :?> Deque<_, _, 'B>
     FM(free.Head, deq) :> FreeF.Free<'S, 'B>
@@ -56,7 +56,7 @@ type DequeFreeComp(ts: TSequence<Deque>) =
       member x.Point(a: F0<'A>) = this.Viewer.FromView(Pure (a.Apply())) :?> Free<'S, 'A> :> _1<Free, 'A>
       member x.Bind(StdF1 f, fa) =
         let inner a = f a :?> FreeF.Free<_, _>
-        this.bind (fa :?> FreeF.Free<_, _>) inner :> _1<Free, _> }
+        this.bind inner (fa :?> FreeF.Free<_, _>) :> _1<Free, _> }
 
   member this.liftF<'S, 'A> (s: Functor<'S>) (value: _1<'S, 'A>) =
     FreeF.Free.liftF value s this.Viewer

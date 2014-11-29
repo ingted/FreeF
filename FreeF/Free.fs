@@ -55,10 +55,10 @@ type Trampoline(v: FreeViewer<Free>) =
   member this.done_ (a: 'A) =
     v.FromView<F0, 'A>(Pure a) :?> Trampoline<'A>
 
-  member this.suspend (a: Trampoline<'A>) =
-    v.FromView<F0, 'A>(Impure (F0.ofFunc <| fun () -> a)) :?> Trampoline<'A>
+  member this.suspend (a: unit -> Trampoline<'A>) =
+    v.FromView<F0, 'A>(Impure (F0.ofFunc <| a)) :?> Trampoline<'A>
 
-  member this.delay (v: FreeViewer<Free>) (a: 'A) = this.suspend (this.done_ a)
+  member this.delay (a: 'A) = this.suspend (fun () -> this.done_ a)
 
   member this.run s (tr: Trampoline<'A>) =
     let inner (f: _1<_, _>) = (f :?> F0<Free<F0, 'A>>).Apply()
