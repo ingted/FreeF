@@ -25,11 +25,11 @@ open FSharp.Karma
 [<AbstractClass>]
 type DequeFreeComp(ts: TSequence<Deque>) =
 
-  let (|FM|) (free: FreeF.Free<_, _>) = free :?> FM<_, _, _>
+  let (|FM|) (free: FreeF.Free<'S, 'A>) = free :?> FM<'S, 'A, 'A>
 
   member this.Viewer = { new FreeViewer<Free> with
 
-    member x.FromView<'S, 'A>(h: FreeView<'S, 'A>) = FM(h, ts.Tempty() :?> Deque<_, _, _>) :> _2<_, _, _>
+    member x.FromView<'S, 'A>(h: FreeView<'S, 'A>) = FM(h, ts.Tempty<'S, 'A>() :?> Deque<_, _, _>) :> _2<_, _, _>
 
     member x.ToView<'S, 'A>(F: Functor<'S>, free: _2<Free, 'S, 'A>) =
       let f = free :?> FM<'S, _, 'A>

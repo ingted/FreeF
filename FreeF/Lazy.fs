@@ -272,7 +272,10 @@ module TFingerTree =
   let app2 (t1: TFingerTree<'R, 'A, 'B>) (t2: TFingerTree<'R, 'B, 'C>) : TFingerTree<'R, 'A, 'C> =
     match box t1 with
     | :? Empty<'R, 'A> -> downcast box t2
-    | :? Single<'R, 'A, 'B> as t11 -> prepend (downcast box (t11.A())) (downcast box t2)
+    | :? Single<'R, 'A, 'B> as t11 ->
+      let a = (downcast box (t11.A()))
+      let b = (downcast box t2)
+      prepend a b
     | :? Deep<'R, 'A, 'A, 'B, 'B> as t11 ->
       match box t2 with
       | :? Empty<'R, 'B> -> downcast box t1
@@ -306,9 +309,9 @@ module TFingerTree =
 
     member this.Tsingleton(c) = single c :> _3<Deque, _, _, _>
 
-    member this.Tappend(a, b) =
-      app2 (a :?> TFingerTree<_, _, _>) (b :?> TFingerTree<_, _, _>)
-      :> _3<Deque, _, _, _>
+    member this.Tappend<'C, 'X, 'Y, 'Z>(a: _3<Deque, 'C, 'X, 'Y>, b: _3<Deque, 'C, 'Y, 'Z>) =
+      app2 (a :?> TFingerTree<'C, 'X, 'Y>) (b :?> TFingerTree<'C, 'Y, 'Z>)
+      :> _3<Deque, 'C, 'X, 'Z>
 
     member this.Tviewl(s: _3<Deque, 'C, 'X, 'Y>) =
       match box s with
