@@ -61,4 +61,4 @@ type DequeFreeComp(ts: TSequence<Deque>) =
   member this.liftF<'S, 'A> (s: Functor<'S>) (value: _1<'S, 'A>) =
     FreeF.Free.liftF value s this.Viewer
 
-  member this.Trampolne = Trampoline(this.Viewer)
+  member this.Trampoline = Trampoline(this.Viewer)
