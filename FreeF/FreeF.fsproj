@@ -57,6 +57,7 @@
     <Compile Include="Free.fs" />
     <Compile Include="DequeFreeComp.fs" />
     <Compile Include="Strict.fs" />
+    <Compile Include="Lazy.fs" />
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
