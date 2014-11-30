@@ -32,6 +32,10 @@ type DequeFreeComp(ts: TSequence<Deque>) =
     member x.FromView<'S, 'A>(h: FreeView<'S, 'A>) = FM(h, ts.Tempty<'S, 'A>() :?> Deque<_, _, _>) :> _2<_, _, _>
 
     member x.ToView<'S, 'A>(F: Functor<'S>, free: _2<Free, 'S, 'A>) =
+      let apply x (a: _2<'S, 'x, 'y>) =
+        match box a with
+        | :? FCS<'S, 'x, 'y> as a -> a.F x
+        | _ -> a :?> FreeF.Free<'S, 'y>
       let f = free :?> FM<'S, _, 'A>
       match f.Head with
       | Pure a ->
@@ -39,7 +43,7 @@ type DequeFreeComp(ts: TSequence<Deque>) =
         | :? TViewl.EmptyL<Deque, 'S, 'A> -> Pure a
         | _ as l ->
           let l = l :?> TViewl.LeafL<Deque, 'S, _, _, 'A>
-          let f2 = l.Head :?> FM<'S, _, _>
+          let f2 = apply x l.Head :?> FM<'S, _, _>
           x.ToView(F, FM(f2.Head, ts.Tappend<'S, _, _, 'A>(f2.Tail, l.Tail()) :?> Deque<_, _, _>))
       | Impure a ->
         let inner (FM f2) = FM(f2.Head, ts.Tappend<'S, _, _, 'A>(f2.Tail, f.Tail) :?> Deque<_, _, _>) :> FreeF.Free<_, _>
